@@ -1,0 +1,276 @@
+enum OrderStatus {
+  OPEN
+  CANCELLED
+  FILLED
+  EXPIRED
+}
+
+enum UpdateType {
+  INCREASE
+  DECREASE
+  SWAP
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+}
+
+enum HistoryStatus {
+  OPEN
+  CANCELLED
+  FILLED
+  EXPIRED
+  LIQUIDATED
+}
+
+type Block @entity {
+  "ID (hash)"
+  id: ID!
+  "Parent Hash"
+  parentHash: Bytes!
+  "Uncles Hash"
+  unclesHash: Bytes!
+  "Author"
+  author: Bytes!
+  "State Root"
+  stateRoot: Bytes!
+  "Transactions Root"
+  transactionsRoot: Bytes!
+  "Receipts Root"
+  receiptsRoot: Bytes!
+  "Number"
+  number: BigInt!
+  "Gas Used"
+  gasUsed: BigInt!
+  "Gas Limit"
+  gasLimit: BigInt!
+  "Timestamp"
+  timestamp: BigInt!
+  "Difficulty"
+  difficulty: BigInt!
+  "Total Difficulty"
+  totalDifficulty: BigInt!
+  "Size"
+  size: BigInt
+}
+
+type Protocol @entity {
+  id: ID!
+  address: Bytes!
+  pools: [Pool!]! @derivedFrom(field: "protocol")
+  totalVolume: BigInt!
+  totalFee: BigInt!
+  totalLongPositions: BigInt!
+  totalShortPositions: BigInt!
+  totalUsers: Int!
+  profit: BigInt!
+  loss: BigInt!
+}
+
+# Pool and markets
+type Pool @entity {
+  id: ID!
+  markets: [Market!]! @derivedFrom(field: "pool")
+  orders: [Order!]! @derivedFrom(field: "pool")
+  tokenCount: Int!
+  totalVolume: BigInt!
+  totalFee: BigInt!
+  totalLongPositions: BigInt!
+  totalShortPositions: BigInt!
+  protocol: Protocol!
+}
+
+type Market @entity {
+  id: ID! # use token address for ID
+  indexToken: Token!
+  orders: [Order!]! @derivedFrom(field: "market")
+  positions: [Position!]! @derivedFrom(field: "market")
+  trades: [Trade!]! @derivedFrom(field: "market")
+  pool: Pool
+}
+
+type Token @entity {
+  id: ID!
+  symbol: String!
+  decimals: Int!
+  price: BigInt!
+  lastUpdatedBlock: BigInt!
+}
+
+# Orders
+type Order @entity {
+  id: ID!
+  pool: Pool!
+  owner: Bytes!
+  collateralToken: Bytes
+  payToken: Bytes
+  sizeChange: BigInt
+  collateralValue: BigInt
+  executionFee: BigInt!
+  expiresAt: BigInt
+  submissionBlock: BigInt
+  submissionTimestamp: BigInt!
+  executionTimestamp: BigInt
+  side: Int
+  updateType: UpdateType!
+  type: OrderType!
+  price: BigInt!
+  triggerAboveThreshold: Boolean
+  status: OrderStatus!
+  executionPrice: BigInt!
+  market: Market
+
+  # SwapOrder
+  tokenIn: Bytes
+  tokenOut: Bytes
+  amountIn: BigInt
+  minAmountOut: BigInt
+  amountOut: BigInt
+}
+
+type Position @entity {
+  id: ID!
+  owner: Bytes!
+  side: Int!
+  collateralToken: Bytes!
+  size: BigInt!
+  collateralValue: BigInt!
+  leverage: BigInt!
+  reserveAmount: BigInt!
+  entryPrice: BigInt!
+  entryInterestRate: BigInt!
+  status: PositionStatus!
+  createdAtTimestamp: BigInt!
+  market: Market!
+}
+
+type User @entity {
+  id: ID!
+  positionCount: Int!
+  orderCount: Int!
+}
+
+# Orderbook style entities to make matching order more efficient
+# trade direction:
+# - increase long position/decrease short position = bid
+# - decrease long position/increase short position = ask
+enum TradeDirection {
+  ASK
+  BID
+}
+
+type OrderIndex @entity {
+  id: ID!
+  triggerPrice: BigInt!
+  direction: TradeDirection!
+  createdAt: BigInt!
+  status: OrderStatus!
+  market: String
+}
+
+type History @entity {
+  id: ID!
+  owner: Bytes!
+  size: BigInt
+  collateralValue: BigInt
+  side: Int
+  type: OrderType
+  updateType: UpdateType
+  collateralToken: Bytes
+  market: Market
+  triggerPrice: BigInt
+  executionPrice: BigInt
+  liquidatedPrice: BigInt
+  triggerAboveThreshold: Boolean
+  status: HistoryStatus!
+  createdAtTimestamp: BigInt!
+  tx: Bytes!
+
+  #SwapOrder
+  tokenIn: Bytes
+  tokenOut: Bytes
+  amountIn: BigInt
+  minAmountOut: BigInt
+  amountOut: BigInt
+}
+
+type Trade @entity {
+  id: ID!
+  owner: Bytes!
+  date: BigInt!
+  market: Market!
+  side: Int!
+  updateType: UpdateType!
+  price: BigInt!
+  size: BigInt!
+  tx: Bytes!
+}
+
+type ProtocolDailyData @entity {
+  id: ID!
+  timestamp: BigInt!
+  swapVolume: BigInt!
+  swapFee: BigInt!
+  mintLpValue: BigInt!
+  mintLpFee: BigInt!
+  burnLpValue: BigInt!
+  burnLpFee: BigInt!
+  liquidatedValue: BigInt!
+  liquidatedFee: BigInt!
+  tradingVolume: BigInt!
+  tradingFee: BigInt!
+  totalLongPositions: BigInt!
+  totalShortPositions: BigInt!
+  swapCount: Int!
+  uniqueSwapCount: Int!
+  mintLpCount: Int!
+  uniqueMintLpCount: Int!
+  burnLpCount: Int!
+  uniqueBurnLpCount: Int!
+  tradeCount: Int!
+  uniqueTradeCount: Int!
+  uniqueUserCount: Int!
+  profit: BigInt!
+  cumulativeProfit: BigInt!
+  loss: BigInt!
+  cumulativeLoss: BigInt!
+  cumulativeVolume: BigInt!
+  cumulativeFee: BigInt!
+}
+
+type PoolDailyData @entity {
+  id: ID!
+  pool: Pool!
+  timestamp: BigInt!
+  poolValue: BigInt!
+  totalSupply: BigInt!
+  swapVolume: BigInt!
+  swapFee: BigInt!
+  mintLpValue: BigInt!
+  mintLpFee: BigInt!
+  burnLpValue: BigInt!
+  burnLpFee: BigInt!
+  liquidatedValue: BigInt!
+  liquidatedFee: BigInt!
+  tradingVolume: BigInt!
+  tradingFee: BigInt!
+  tokenDistributions: [BigInt!]!
+  totalLongPositions: BigInt!
+  totalShortPositions: BigInt!
+}
+
+type UserDailyData @entity {
+  id: ID!
+  address: Bytes!
+  timestamp: BigInt!
+  swapCount: Int!
+  mintLpCount: Int!
+  burnLpCount: Int!
+  tradeCount: Int!
+}

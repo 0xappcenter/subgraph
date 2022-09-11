@@ -1,0 +1,101 @@
+specVersion: 0.0.4
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: OrderManager
+    network: goerli
+    source:
+      abi: OrderManager
+      address: "0x635466564E47c8523e5d5B0b05E8491ABBd330C9"
+      startBlock: 32884519
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - Market
+        - Token
+        - Protocol
+        - Order
+        - Block
+        - User
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: LpToken
+          file: ./abis/LpToken.json
+        - name: Pool
+          file: ./abis/Pool.json
+        - name: OrderManager
+          file: ./abis/OrderManager.json
+        - name: PriceFeed
+          file: ./abis/PriceFeed.json
+      eventHandlers:
+        - event: PoolAdded(address)
+          handler: handlePoolAdded
+        - event: OrderPlaced(indexed uint256,(address,address,address,address,address,uint256,uint256,uint256,uint256,bool),(uint8,uint256,uint256,uint8))
+          handler: handleOrderPlaced
+        - event: OrderCancelled(indexed uint256)
+          handler: handleOrderCancelled
+        - event: OrderExpired(indexed uint256)
+          handler: handleOrderExpired
+        - event: OrderExecuted(indexed uint256,(address,address,address,address,address,uint256,uint256,uint256,uint256,bool),(uint8,uint256,uint256,uint8))
+          handler: handleOrderExecuted1
+        - event: OrderExecuted(indexed uint256,(address,address,address,address,address,uint256,uint256,uint256,uint256,bool),(uint8,uint256,uint256,uint8),uint256)
+          handler: handleOrderExecuted
+        - event: SwapOrderPlaced(indexed uint256)
+          handler: handleSwapOrderPlaced
+        - event: SwapOrderCancelled(indexed uint256)
+          handler: handleSwapOrderCancelled
+        - event: SwapOrderExecuted(indexed uint256,uint256,uint256)
+          handler: handleSwapOrderExecuted
+        - event: Swap(indexed address,indexed address,indexed address,address,uint256,uint256)
+          handler: handleSwap
+      blockHandlers:
+        - handler: handleBlock
+      file: src/ordermanager.ts
+templates:
+  - kind: ethereum
+    name: Pool
+    network: goerli
+    source:
+      abi: Pool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/pool.ts
+      entities:
+        - Pool
+        - Market
+        - Token
+        - User
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: LpToken
+          file: ./abis/LpToken.json
+        - name: Pool
+          file: ./abis/Pool.json
+        - name: PriceFeed
+          file: ./abis/PriceFeed.json
+      eventHandlers:
+        - event: TokenWhitelisted(address)
+          handler: handleTokenWhitelisted
+        - event: IncreasePosition(bytes32,address,address,address,uint256,uint256,uint8,uint256,uint256)
+          handler: handleIncreasePosition
+        - event: DecreasePosition(bytes32,address,address,address,uint256,uint256,uint8,uint256,(uint256,uint256),uint256)
+          handler: handleDecreasePosition
+        - event: UpdatePosition(bytes32,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleUpdatePosition
+        - event: ClosePosition(bytes32,uint256,uint256,uint256,uint256,uint256)
+          handler: handleClosePosition
+        - event: LiquidatePosition(bytes32,address,address,address,uint8,uint256,uint256,uint256,uint256,(uint256,uint256),uint256)
+          handler: handleLiquidatePosition
+        - event: Swap(address,address,uint256,uint256,uint256)
+          handler: handleSwap
+        - event: AddLiquidity(address,uint256,uint256,uint256)
+          handler: handleAddLiquidity
+        - event: RemoveLiquidity(address,uint256,uint256,uint256)
+          handler: handleRemoveLiquidity
